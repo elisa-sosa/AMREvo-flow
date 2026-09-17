@@ -1,0 +1,10 @@
+.nextflow/
+work/
+results/
+logs/
+*.log
+*.html
+*.zip
+params.local.json
+samples/*.local.tsv
+conf/local.config

@@ -1,0 +1,2 @@
+sample_id	illumina_r1_relpath	illumina_r2_relpath	ont_relpath
+EXAMPLE-001	illumina_run/EXAMPLE-001/0_trimming/EXAMPLE-001_R1.fastq.gz	illumina_run/EXAMPLE-001/0_trimming/EXAMPLE-001_R2.fastq.gz	ont_run/EXAMPLE-001.fastq.gz
