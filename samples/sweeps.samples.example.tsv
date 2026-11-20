@@ -1,0 +1,2 @@
+sample_id	patient_id	timepoint	material	agar_type	expect_illumina	expect_ont	active
+SYN-SWEEP-001	SYN-P01	01	sweep	MCA	true	false	true

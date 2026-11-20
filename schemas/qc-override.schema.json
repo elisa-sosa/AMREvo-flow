@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amrevo.uzh.ch/schemas/qc-override.schema.json",
+  "title": "AMREvoFlow reviewed QC override",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sample_id", "stage", "reviewer", "date", "reason", "approval"],
+  "properties": {
+    "sample_id": {"type": "string", "minLength": 1},
+    "stage": {"type": "string", "enum": ["ILLUMINA_QC", "ONT_QC", "ASSEMBLY_QC"]},
+    "reviewer": {"type": "string", "minLength": 1},
+    "date": {"type": "string", "format": "date"},
+    "reason": {"type": "string", "minLength": 1},
+    "approval": {"type": "string", "enum": ["approved", "withdrawn"]}
+  }
+}

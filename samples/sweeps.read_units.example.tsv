@@ -1,0 +1,2 @@
+sample_id	read_unit_id	platform	source_run	r1	r2	ont_fastq	trim_metrics	decision	facility_qc_status	merge_order	comment
+SYN-SWEEP-001	SYN-SWEEP-001-I1	illumina	synthetic-run-1	/path/review/required/SYN-SWEEP-001_R1.fastq.gz	/path/review/required/SYN-SWEEP-001_R2.fastq.gz		/path/review/required/SYN-SWEEP-001.quality_read_trimm_info	candidate	accepted	1	example only

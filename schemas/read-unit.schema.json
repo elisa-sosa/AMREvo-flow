@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amrevo.uzh.ch/schemas/read-unit.schema.json",
+  "title": "AMREvoFlow read-unit manifest row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sample_id",
+    "read_unit_id",
+    "platform",
+    "source_run",
+    "r1",
+    "r2",
+    "ont_fastq",
+    "trim_metrics",
+    "decision",
+    "facility_qc_status",
+    "merge_order",
+    "comment"
+  ],
+  "properties": {
+    "sample_id": {"type": "string", "minLength": 1},
+    "read_unit_id": {"type": "string", "minLength": 1},
+    "platform": {"type": "string", "enum": ["illumina", "ont"]},
+    "source_run": {"type": "string", "minLength": 1},
+    "r1": {"type": "string"},
+    "r2": {"type": "string"},
+    "ont_fastq": {"type": "string"},
+    "trim_metrics": {"type": "string"},
+    "decision": {"type": "string", "enum": ["approved", "candidate", "rejected"]},
+    "facility_qc_status": {"type": "string", "enum": ["", "accepted", "rerun_pending", "rejected"]},
+    "merge_order": {"type": "string", "pattern": "^[0-9]*$"},
+    "comment": {"type": "string"}
+  }
+}

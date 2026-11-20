@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amrevo.uzh.ch/schemas/sample.schema.json",
+  "title": "AMREvoFlow sample manifest row",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sample_id",
+    "patient_id",
+    "timepoint",
+    "material",
+    "agar_type",
+    "expect_illumina",
+    "expect_ont",
+    "active"
+  ],
+  "properties": {
+    "sample_id": {"type": "string", "minLength": 1},
+    "patient_id": {"type": "string"},
+    "timepoint": {"type": "string"},
+    "material": {"type": "string", "enum": ["isolate", "sweep"]},
+    "agar_type": {"type": "string"},
+    "expect_illumina": {"type": "string", "enum": ["true", "false"]},
+    "expect_ont": {"type": "string", "enum": ["true", "false"]},
+    "active": {"type": "string", "enum": ["true", "false"]}
+  }
+}

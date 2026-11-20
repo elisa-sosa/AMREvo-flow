@@ -1,0 +1,5 @@
+sample_id	patient_id	timepoint	material	agar_type	expect_illumina	expect_ont	active
+SYN001	SYN-P01	01	isolate	MCA	true	true	true
+SYN002	SYN-P01	02	isolate	URI	true	true	true
+SYN003	SYN-P02	01	isolate	MCA	true	true	true
+SYN004	SYN-P02	02	isolate	MCA	true	true	true
