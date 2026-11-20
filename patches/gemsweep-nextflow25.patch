@@ -1,0 +1,40 @@
+diff --git a/subworkflows/validate_prebuilt_input.nf b/subworkflows/validate_prebuilt_input.nf
+index 2cd3850..7a8b9e1 100644
+--- a/subworkflows/validate_prebuilt_input.nf
++++ b/subworkflows/validate_prebuilt_input.nf
+@@ -20,16 +20,21 @@ workflow VALIDATE_PREBUILT_INPUT {
+     
+     THEMISTO_STATS(index_files_ch, index_prefix_ch)
+     .map { file ->
+-        def lines = file.readLines()
++        def stats = file.text
+ 
+-        def kmer_index = lines.find { it.startsWith('Node length k:') }
+-                            .tokenize(':')[1].trim().toInteger()
++        def kmer_match = stats =~ /(?m)^\s*Node length k:\s*(\d+)\s*$/
++        if (!kmer_match.find()) {
++            error("Could not parse 'Node length k' from Themisto stats file ${file}:\n${stats}")
++        }
++        def kmer_index = kmer_match.group(1).toInteger()
+ 
+-        def range = lines.find { it.startsWith('Color id range:') }
+-                        .split(':')[1].trim()
+-                        .split('\\.\\.')
++        def range_match = stats =~ /(?m)^\s*Color id range:\s*(\d+)\.\.(\d+)\s*$/
++        if (!range_match.find()) {
++            error("Could not parse 'Color id range' from Themisto stats file ${file}:\n${stats}")
++        }
+ 
+-        def refs_index = range[1].toInteger() - range[0].toInteger() + 1
++        def refs_index = range_match.group(2).toInteger() -
++                         range_match.group(1).toInteger() + 1
+ 
+         tuple(kmer_index, refs_index)
+     }
+@@ -38,4 +43,4 @@ workflow VALIDATE_PREBUILT_INPUT {
+         validate_ref_groups(refs_index, len_ref_groups)
+         tuple(kmer_index, refs_index)
+     }
+-}
+\ No newline at end of file
++}
