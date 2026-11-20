@@ -1,0 +1,26 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.8
+
+%labels
+    org.opencontainers.image.title kTYPr
+    org.opencontainers.image.version 1.0.1
+    org.opencontainers.image.source https://github.com/SushiLab/kTYPr
+
+%post
+    micromamba install -y -n base -c conda-forge -c bioconda \
+        python=3.11 git hmmer blast prodigal && \
+        micromamba clean --all --yes
+    git clone --branch v1.0.1 --depth 1 https://github.com/SushiLab/kTYPr.git /opt/kTYPr
+    cd /opt/kTYPr
+    git rev-parse HEAD > /opt/ktypr_source_commit.txt
+    /opt/conda/bin/pip install --no-cache-dir .
+
+%environment
+    export PATH=/opt/conda/bin:$PATH
+
+%test
+    ktypr --help >/dev/null
+    test "$(python -c 'import importlib.metadata; print(importlib.metadata.version("kTYPr"))')" = "1.0.1"
+
+%runscript
+    exec ktypr "$@"
