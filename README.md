@@ -147,6 +147,18 @@ Illumina-only, ONT-only, both-platform and sweep-only availability are normal.
 Existing exploratory `hybrid_assemblies/` files are not imported: samples with
 both usable read types receive a new AMREvoFlow hybrid assembly.
 
+The reviewed two-isolate plus one-sweep cluster pilot has a tracked controller
+script. Its wrapper checks the pinned GEMSWEEP checkout, pilot IDs and container
+images, and prints the exact submission by default:
+
+```bash
+./submit_pilot.sh
+./submit_pilot.sh --run-id pilot_YYYYMMDD --execute
+```
+
+After pilot acceptance, the same dry-run/`--execute` pattern will be used by a
+routine `submit.sh` that regenerates manifests from `--raw-root` on every run.
+
 `bin/run_amrevoflow.sh` is the single user-facing launcher for the main
 workflow followed by the separately pinned GEMSWEEP pipeline. It does not call
 `sbatch`; both Nextflow invocations use their configured Slurm executors. With
