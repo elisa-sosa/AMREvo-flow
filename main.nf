@@ -188,11 +188,11 @@ Example validation-only run:
         isolateRows = preparedFiles
             .filter { sampleClass, resolved -> sampleClass == 'isolate' }
             .map { sampleClass, resolved -> resolved }
-            .splitCsv(header: true, sep: '\t')
+            .splitCsv(header: true, sep: '\t', quote: '"')
         sweepRows = preparedFiles
             .filter { sampleClass, resolved -> sampleClass == 'sweep' }
             .map { sampleClass, resolved -> resolved }
-            .splitCsv(header: true, sep: '\t')
+            .splitCsv(header: true, sep: '\t', quote: '"')
 
         isolateIlluminaUnits = isolateRows
             .filter { row -> row.active == 'true' && row.skip_complete != 'true' && new groovy.json.JsonSlurper().parseText(row.illumina_r1_json) }
