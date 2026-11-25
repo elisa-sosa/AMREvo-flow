@@ -89,26 +89,7 @@ process GUBBINS_GROUP {
     shell:
     '''
     set -euo pipefail
-    variable_sites=$(python3 - "!{alignment}" <<'PY'
-    import sys
-    sequences = []
-    current = []
-    for line in open(sys.argv[1]):
-        line = line.strip()
-        if line.startswith('>'):
-            if current: sequences.append(''.join(current))
-            current = []
-        else:
-            current.append(line.upper())
-    if current: sequences.append(''.join(current))
-    count = 0
-    if sequences:
-        for column in zip(*sequences):
-            states = {base for base in column if base not in {'N', '-', '?'}}
-            if len(states) > 1: count += 1
-    print(count)
-    PY
-    )
+    variable_sites=$(count_variable_sites.py "!{alignment}")
     if [[ "$variable_sites" -eq 0 ]]; then
       printf 'group_id\tstage\tstatus\tvariable_sites\treason\n%s\tGUBBINS\tNO_VARIABLE_SITES\t0\tcore alignment has no variable sites\n' \
         '!{group_id}' > "!{group_id}.phylogeny_status.tsv"

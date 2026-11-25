@@ -88,7 +88,7 @@ process PREPARE_SAMPLE_STATE {
 
 
 process MERGE_ILLUMINA_UNITS {
-    tag "${meta.sample_id} (${r1_files.size()} unit${r1_files.size() == 1 ? '' : 's'})"
+    tag "${meta.sample_id}"
     label 'validation'
 
     input:
@@ -111,28 +111,15 @@ process MERGE_ILLUMINA_UNITS {
     combine_fastq() {
       local output="$1"
       shift
-      local all_gzip=true
       local input
+      : > "$output"
       for input in "$@"; do
-        if [[ "$input" != *.gz ]]; then all_gzip=false; fi
+        if [[ "$input" == *.gz ]]; then
+          cat "$input" >> "$output"
+        else
+          gzip -c "$input" >> "$output"
+        fi
       done
-      if [[ "$all_gzip" == true ]]; then
-        cat "$@" > "$output"
-      else
-        python3 - "$output" "$@" <<'PY'
-    import gzip
-    import shutil
-    import sys
-    from pathlib import Path
-    output, *inputs = sys.argv[1:]
-    with gzip.open(output, "wb") as destination:
-        for raw in inputs:
-            path = Path(raw)
-            opener = gzip.open if path.suffix == ".gz" else open
-            with opener(path, "rb") as source:
-                shutil.copyfileobj(source, destination, length=8 * 1024 * 1024)
-    PY
-      fi
     }
 
     combine_fastq "!{meta.sample_id}.R1.fastq.gz" "${r1[@]}"
@@ -150,7 +137,7 @@ process MERGE_ILLUMINA_UNITS {
 
 
 process MERGE_ONT_UNITS {
-    tag "${meta.sample_id} (${ont_files.size()} unit${ont_files.size() == 1 ? '' : 's'})"
+    tag "${meta.sample_id}"
     label 'validation'
 
     input:
@@ -165,26 +152,13 @@ process MERGE_ONT_UNITS {
     shopt -s nullglob
     reads=(ont??/*)
     test "${#reads[@]}" -gt 0
-    all_gzip=true
+    : > "!{meta.sample_id}.ONT.fastq.gz"
     for input in "${reads[@]}"; do
-      if [[ "$input" != *.gz ]]; then all_gzip=false; fi
+      if [[ "$input" == *.gz ]]; then
+        cat "$input" >> "!{meta.sample_id}.ONT.fastq.gz"
+      else
+        gzip -c "$input" >> "!{meta.sample_id}.ONT.fastq.gz"
+      fi
     done
-    if [[ "$all_gzip" == true ]]; then
-      cat "${reads[@]}" > "!{meta.sample_id}.ONT.fastq.gz"
-    else
-      python3 - "!{meta.sample_id}.ONT.fastq.gz" "${reads[@]}" <<'PY'
-    import gzip
-    import shutil
-    import sys
-    from pathlib import Path
-    output, *inputs = sys.argv[1:]
-    with gzip.open(output, "wb") as destination:
-        for raw in inputs:
-            path = Path(raw)
-            opener = gzip.open if path.suffix == ".gz" else open
-            with opener(path, "rb") as source:
-                shutil.copyfileobj(source, destination, length=8 * 1024 * 1024)
-    PY
-    fi
     '''
 }

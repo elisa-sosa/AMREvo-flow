@@ -98,48 +98,14 @@ process ONT_QC {
     NanoPlot --fastq "!{ont_reads}" --outdir "${sample_id}.nanoplot" \
       --threads "!{task.cpus}"
 
-    python3 - "${sample_id}.nanoplot/NanoStats.txt" \
-      "${sample_id}.ont_qc.tsv" "${sample_id}" "${override}" \
-      "!{params.ont_min_bases}" "!{params.ont_min_n50}" \
-      "!{params.ont_min_mean_q}" <<'PY'
-    import re
-    import sys
-    from pathlib import Path
-
-    stats_path, output, sample_id, override = sys.argv[1:5]
-    min_bases, min_n50, min_mean_qual = map(float, sys.argv[5:8])
-    text = Path(stats_path).read_text(errors="replace")
-
-    def value(*labels):
-        for label in labels:
-            match = re.search(rf"(?im)^\s*{label}\s*:\s*([0-9,.]+)", text)
-            if match:
-                return float(match.group(1).replace(",", ""))
-        raise SystemExit(f"Could not parse {labels[0]} from {stats_path}")
-
-    bases = value("Number of bases", "Total bases")
-    n50 = value("Read length N50", "N50")
-    mean_qual = value("Mean read quality", "Mean quality")
-    failures = []
-    if bases < min_bases:
-        failures.append(f"number_of_bases<{min_bases:g}")
-    if n50 < min_n50:
-        failures.append(f"n50<{min_n50:g}")
-    if mean_qual < min_mean_qual:
-        failures.append(f"mean_qual<{min_mean_qual:g}")
-
-    override_applied = bool(failures) and override.lower() == "true"
-    passed = not failures or override.lower() == "true"
-    with open(output, "w") as handle:
-        handle.write("sample_id\tstage\tstatus\tnumber_of_bases\tn50\tmean_qual\toverride_applied\treason\n")
-        handle.write(
-            f"{sample_id}\tONT_QC\t{'PASS' if passed else 'FAIL'}\t"
-            f"{bases:.0f}\t{n50:.0f}\t{mean_qual:.4g}\t"
-            f"{str(override_applied).lower()}\t{';'.join(failures)}\n"
-        )
-    if passed:
-        Path(f"{sample_id}.ONT_READY").write_text("PASS\n")
-    PY
+    parse_ont_qc.py \
+      --stats "${sample_id}.nanoplot/NanoStats.txt" \
+      --output "${sample_id}.ont_qc.tsv" \
+      --sample-id "${sample_id}" \
+      --override "${override}" \
+      --min-bases "!{params.ont_min_bases}" \
+      --min-n50 "!{params.ont_min_n50}" \
+      --min-mean-qual "!{params.ont_min_mean_q}"
 
     {
       printf 'nanoplot\t'
@@ -450,47 +416,15 @@ process CHECKM2_QC {
       --output-directory checkm2 --database_path "!{params.checkm2_db}" --force
     test -s checkm2/quality_report.tsv
 
-    python3 - checkm2/quality_report.tsv "${sample_id}.checkm2.tsv" \
-      "${sample_id}" "${override}" \
-      "!{params.assembly_pass_completeness}" \
-      "!{params.assembly_min_completeness}" \
-      "!{params.assembly_pass_contamination}" \
-      "!{params.assembly_max_contamination}" <<'PY'
-    import csv
-    import sys
-    from pathlib import Path
-
-    source, output, sample_id, override = sys.argv[1:5]
-    pass_completeness = float(sys.argv[5])
-    min_completeness = float(sys.argv[6])
-    pass_contamination = float(sys.argv[7])
-    max_contamination = float(sys.argv[8])
-    with open(source, newline="") as handle:
-        row = next(csv.DictReader(handle, delimiter="\t"))
-    completeness = float(row["Completeness"])
-    contamination = float(row["Contamination"])
-    if completeness < min_completeness or contamination >= max_contamination:
-        qc = "FAIL"
-    elif completeness < pass_completeness or contamination > pass_contamination:
-        qc = "WARN"
-    else:
-        qc = "PASS"
-    override_applied = qc == "FAIL" and override.lower() == "true"
-    eligible = qc != "FAIL" or override.lower() == "true"
-    reason = []
-    if completeness < min_completeness:
-        reason.append(f"completeness<{min_completeness:g}")
-    if contamination >= max_contamination:
-        reason.append(f"contamination>={max_contamination:g}")
-    with open(output, "w") as handle:
-        handle.write("sample_id\tstage\tstatus\tcompleteness\tcontamination\toverride_applied\treason\n")
-        handle.write(
-            f"{sample_id}\tASSEMBLY_QC\t{qc}\t{completeness:.6g}\t"
-            f"{contamination:.6g}\t{str(override_applied).lower()}\t{';'.join(reason)}\n"
-        )
-    if eligible:
-        Path(f"{sample_id}.ASSEMBLY_READY").write_text(f"{qc}\n")
-    PY
+    parse_checkm2_qc.py \
+      --report checkm2/quality_report.tsv \
+      --output "${sample_id}.checkm2.tsv" \
+      --sample-id "${sample_id}" \
+      --override "${override}" \
+      --pass-completeness "!{params.assembly_pass_completeness}" \
+      --min-completeness "!{params.assembly_min_completeness}" \
+      --pass-contamination "!{params.assembly_pass_contamination}" \
+      --max-contamination "!{params.assembly_max_contamination}"
 
     {
       printf 'checkm2\t'
@@ -538,26 +472,10 @@ process GTDBTK_CLASSIFY {
     summary="$(find gtdbtk -type f -name '*.bac120.summary.tsv' -print -quit)"
     test -s "${summary}"
 
-    python3 - "${summary}" "${sample_id}.gtdbtk.tsv" "${sample_id}" <<'PY'
-    import csv
-    import sys
-    from pathlib import Path
-
-    source, output, sample_id = sys.argv[1:]
-    with open(source, newline="") as handle:
-        row = next(csv.DictReader(handle, delimiter="\t"))
-    classification = row.get("classification", "")
-    species = ""
-    for rank in classification.split(";"):
-        if rank.startswith("s__"):
-            species = rank[3:]
-    status = "ECOLI" if species == "Escherichia coli" else "NON_ECOLI"
-    with open(output, "w") as handle:
-        handle.write("sample_id\tstage\tstatus\tspecies\tclassification\n")
-        handle.write(f"{sample_id}\tGTDBTK\t{status}\t{species}\t{classification}\n")
-    if status == "ECOLI":
-        Path(f"{sample_id}.ECOLI_READY").write_text("Escherichia coli\n")
-    PY
+    parse_gtdbtk.py \
+      --summary "${summary}" \
+      --output "${sample_id}.gtdbtk.tsv" \
+      --sample-id "${sample_id}"
 
     {
       printf 'gtdbtk\t'
