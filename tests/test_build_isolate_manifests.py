@@ -23,13 +23,33 @@ def read_tsv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle, delimiter="\t"))
 
 
+def read_csv_rows(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def rewrite_csv(path: Path, rows: list[dict[str, str]]) -> None:
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def prepare_metadata(tmp_path: Path) -> tuple[Path, Path]:
     completed = tmp_path / "lims.csv"
     pending = tmp_path / "v3.csv"
     write_csv(
         completed,
-        ["sample_id", "PatientNr", "Timepoint", "AgarType"],
-        [["P001-MCA--01-01", "001", "-1", "MCA"]],
+        [
+            "sample_id",
+            "PatientNr",
+            "Timepoint",
+            "AgarType",
+            "illumina_trimmed_r1_path",
+            "illumina_trimmed_r2_path",
+            "nanopore_fastq_path",
+        ],
+        [["P001-MCA--01-01", "001", "-1", "MCA", "", "", ""]],
     )
     write_csv(
         pending,
@@ -63,6 +83,13 @@ class IsolateManifestBuilderTests(unittest.TestCase):
         ont.mkdir()
         if newest_complete:
             (ont / "P001-MCA--01-01.fastq").write_text("@r\nA\n+\nI\n")
+        completed_rows = read_csv_rows(completed)
+        latest = illumina / "esccol_250201" / "P001-MCA--01-01" / "0_trimming"
+        if newest_complete:
+            completed_rows[0]["illumina_trimmed_r1_path"] = str(latest / "P001-MCA--01-01_R1.fastq.gz")
+            completed_rows[0]["illumina_trimmed_r2_path"] = str(latest / "P001-MCA--01-01_R2.fastq.gz")
+            completed_rows[0]["nanopore_fastq_path"] = str(ont / "P001-MCA--01-01.fastq")
+        rewrite_csv(completed, completed_rows)
         samples = tmp_path / "samples.tsv"
         reads = tmp_path / "reads.tsv"
         result = subprocess.run(

@@ -108,6 +108,24 @@ def build_registry(completed: Path, pending: Path) -> dict[str, dict[str, str]]:
     return registry
 
 
+def completed_path_expectations(path: Path) -> dict[str, dict[str, str]]:
+    expectations: dict[str, dict[str, str]] = {}
+    for row in read_csv(path):
+        sample_id = first(row, "sample_id", "Unique_ID")
+        if not sample_id:
+            continue
+        r1 = first(row, "illumina_trimmed_r1_path")
+        r2 = first(row, "illumina_trimmed_r2_path")
+        if bool(r1) != bool(r2):
+            raise ValueError(f"Completed LIMS has only one Illumina mate for {sample_id}")
+        expectations[sample_id] = {
+            "r1": r1,
+            "r2": r2,
+            "ont_fastq": first(row, "nanopore_fastq_path"),
+        }
+    return expectations
+
+
 def append_comment(row: dict[str, str], value: str) -> None:
     existing = row.get("comment", "")
     row["comment"] = ";".join(part for part in (existing, value) if part)
@@ -187,6 +205,53 @@ def select_ont(rows: list[dict[str, str]]) -> list[dict[str, str]]:
     return selected
 
 
+def normalized_path(value: str) -> str:
+    return str(Path(value).resolve(strict=False)) if value else ""
+
+
+def verify_completed_paths(
+    rows: list[dict[str, str]], expectations: dict[str, dict[str, str]]
+) -> tuple[int, int]:
+    approved: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
+    for row in rows:
+        if row["decision"] == "approved":
+            approved[(row["sample_id"], row["platform"])].append(row)
+
+    illumina_verified = 0
+    ont_verified = 0
+    for sample_id, expected in expectations.items():
+        if expected["r1"]:
+            observed = approved.get((sample_id, "illumina"), [])
+            if len(observed) != 1:
+                raise ValueError(
+                    f"{sample_id}: LIMS has an Illumina pair but discovery did not approve exactly one pair"
+                )
+            row = observed[0]
+            if (
+                normalized_path(row["r1"]) != normalized_path(expected["r1"])
+                or normalized_path(row["r2"]) != normalized_path(expected["r2"])
+            ):
+                raise ValueError(
+                    f"{sample_id}: latest discovered Illumina pair disagrees with completed LIMS paths"
+                )
+            append_comment(row, "VERIFIED_AGAINST_COMPLETED_LIMS_PATHS")
+            illumina_verified += 1
+        if expected["ont_fastq"]:
+            observed = approved.get((sample_id, "ont"), [])
+            if len(observed) != 1:
+                raise ValueError(
+                    f"{sample_id}: LIMS has an ONT FASTQ but discovery did not approve exactly one FASTQ"
+                )
+            row = observed[0]
+            if normalized_path(row["ont_fastq"]) != normalized_path(expected["ont_fastq"]):
+                raise ValueError(
+                    f"{sample_id}: discovered ONT FASTQ disagrees with completed LIMS path"
+                )
+            append_comment(row, "VERIFIED_AGAINST_COMPLETED_LIMS_PATHS")
+            ont_verified += 1
+    return illumina_verified, ont_verified
+
+
 def write_tsv(path: Path, fields: list[str], rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as handle:
@@ -199,10 +264,14 @@ def main() -> int:
     args = parse_args()
     try:
         registry = build_registry(args.completed_lims, args.pending_v3)
+        expectations = completed_path_expectations(args.completed_lims)
         if not args.illumina_root.is_dir() or not args.ont_root.is_dir():
             raise ValueError("Illumina and ONT roots must both exist")
         illumina = select_illumina(illumina_candidates(args.illumina_root))
         ont = select_ont(ont_candidates(args.ont_root))
+        illumina_verified, ont_verified = verify_completed_paths(
+            illumina + ont, expectations
+        )
     except ValueError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 2
@@ -224,6 +293,10 @@ def main() -> int:
     print(
         f"Wrote {len(reads)} read units to {args.read_units_output}: "
         + ", ".join(f"{key}={decisions[key]}" for key in sorted(decisions)),
+        file=sys.stderr,
+    )
+    print(
+        f"Verified completed LIMS paths: illumina={illumina_verified}, ont={ont_verified}",
         file=sys.stderr,
     )
     if unknown:

@@ -58,10 +58,20 @@ FASTQ is approved directly. Generate these project manifests with:
 python3 bin/build_isolate_manifests.py --help
 ```
 
+For completed isolates, manifest generation additionally requires the selected
+latest Illumina and unique ONT paths to match the corresponding explicit paths
+in the LIMS sequencing interface. Any disagreement stops generation for review.
+
 Sweeps use only the read-ID-deduplicated reconstruction under
 `sweeps_fastq/all/`; historical `cat`, `cat-new`, delivery and test folders are
-not production inputs. See `samples/` and `schemas/` for synthetic examples
-and machine-readable definitions.
+not production inputs. Convert the saved `ID,R1,R2` production manifest with:
+
+```bash
+python3 bin/build_sweep_manifests.py --help
+```
+
+See `samples/` and `schemas/` for synthetic examples and machine-readable
+definitions.
 
 Use the discovery helper to generate candidates for review:
 
@@ -123,6 +133,19 @@ nextflow run main.nf -profile slurm \
   --outdir results \
   --run_id REVIEWED_VALIDATION_ID
 ```
+
+For routine cluster use, provide the common raw-read root. The launcher derives
+the LIMS, v3, frozen-index and reference locations, regenerates all four ignored
+manifests from currently available inputs, and prints the proposed commands:
+
+```bash
+bin/run_amrevoflow.sh \
+  --raw-root /shares/amr.imm.uzh/data/projects/NGS00401-Elisa-AMREvo/05_sequencing/01_data/raw_reads
+```
+
+Illumina-only, ONT-only, both-platform and sweep-only availability are normal.
+Existing exploratory `hybrid_assemblies/` files are not imported: samples with
+both usable read types receive a new AMREvoFlow hybrid assembly.
 
 `bin/run_amrevoflow.sh` is the single user-facing launcher for the main
 workflow followed by the separately pinned GEMSWEEP pipeline. It does not call

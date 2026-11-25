@@ -13,10 +13,18 @@ ALLOWED_ROOTS=""
 INDEX_PREFIX=""
 REF_GROUPS=""
 CARRIAGE_REFERENCES=""
+RAW_ROOT=""
+COMPLETED_LIMS=""
+PENDING_V3=""
 
 usage() {
   cat <<'EOF'
 Usage: bin/run_amrevoflow.sh [options]
+  --raw-root PATH
+      Root containing illumina_reads/, nanopore_fastq/, hybrid_assemblies/
+      and sweeps_fastq/. Generates all four ignored manifests automatically.
+  [--completed-lims PATH]
+  [--pending-v3 PATH]
   --isolate-samples PATH
   --isolate-read-units PATH
   --sweep-samples PATH
@@ -28,13 +36,17 @@ Usage: bin/run_amrevoflow.sh [options]
   [--run-id ID]
   [--execute]
 
-Without --execute the launcher prints every Nextflow command and changes no
-workflow state. It never calls sbatch directly.
+With --raw-root, manifest paths and established AMREvo reference paths are
+derived automatically. Without --execute the launcher generates the ignored
+manifests and prints every Nextflow command. It never calls sbatch directly.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --raw-root) RAW_ROOT=$2; shift 2 ;;
+    --completed-lims) COMPLETED_LIMS=$2; shift 2 ;;
+    --pending-v3) PENDING_V3=$2; shift 2 ;;
     --isolate-samples) ISOLATE_SAMPLES=$2; shift 2 ;;
     --isolate-read-units) ISOLATE_UNITS=$2; shift 2 ;;
     --sweep-samples) SWEEP_SAMPLES=$2; shift 2 ;;
@@ -49,6 +61,42 @@ while [[ $# -gt 0 ]]; do
     *) echo "ERROR: Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+if [[ -n "$RAW_ROOT" ]]; then
+  [[ -d "$RAW_ROOT" ]] || { echo "ERROR: Raw root is not a directory: $RAW_ROOT" >&2; exit 2; }
+  RAW_ROOT=$(cd "$RAW_ROOT" && pwd)
+  DATA_PROJECT=$(cd "$RAW_ROOT/../../.." && pwd)
+  COMPLETED_LIMS=${COMPLETED_LIMS:-$DATA_PROJECT/06_Overview_Data_Freezer/03_Overall_Data_sheets_LIMS/02_results/04_AMREvo_sequencing.csv}
+  PENDING_V3=${PENDING_V3:-$DATA_PROJECT/05_sequencing/03_scripts/06_sampling_design/04_pending_wgs_v3_1177_with_locations.csv}
+  ISOLATE_SAMPLES=${ISOLATE_SAMPLES:-$PROJECT_DIR/inputs/isolates.samples.local.tsv}
+  ISOLATE_UNITS=${ISOLATE_UNITS:-$PROJECT_DIR/inputs/isolates.read_units.local.tsv}
+  SWEEP_SAMPLES=${SWEEP_SAMPLES:-$PROJECT_DIR/inputs/sweeps.samples.local.tsv}
+  SWEEP_UNITS=${SWEEP_UNITS:-$PROJECT_DIR/inputs/sweeps.read_units.local.tsv}
+  ALLOWED_ROOTS=${ALLOWED_ROOTS:-[\"$RAW_ROOT\"]}
+  INDEX_PREFIX=${INDEX_PREFIX:-$DATA_PROJECT/05_sequencing/04_jobs/ecoli_reference_curation/06_themisto_index/poppunk_628_plus_14_preliminary/index}
+  REF_GROUPS=${REF_GROUPS:-$DATA_PROJECT/05_sequencing/04_jobs/ecoli_reference_curation/05_final_database/poppunk_628_plus_14_preliminary/reference_groups.txt}
+  CARRIAGE_REFERENCES=${CARRIAGE_REFERENCES:-$DATA_PROJECT/05_sequencing/05_results/ecoli_reference_curation/preliminary_poppunk_628_plus_14_manifest.tsv}
+
+  for required_dir in "$RAW_ROOT/illumina_reads" "$RAW_ROOT/nanopore_fastq" "$RAW_ROOT/sweeps_fastq/all"; do
+    [[ -d "$required_dir" ]] || { echo "ERROR: Expected input directory missing: $required_dir" >&2; exit 2; }
+  done
+  if [[ -d "$RAW_ROOT/hybrid_assemblies" ]]; then
+    echo "INFO: Existing hybrid_assemblies/ is legacy input and will not be imported; hybrids are rebuilt from reads." >&2
+  fi
+
+  python3 "$PROJECT_DIR/bin/build_isolate_manifests.py" \
+    --completed-lims "$COMPLETED_LIMS" \
+    --pending-v3 "$PENDING_V3" \
+    --illumina-root "$RAW_ROOT/illumina_reads" \
+    --ont-root "$RAW_ROOT/nanopore_fastq" \
+    --samples-output "$ISOLATE_SAMPLES" \
+    --read-units-output "$ISOLATE_UNITS"
+
+  python3 "$PROJECT_DIR/bin/build_sweep_manifests.py" \
+    --all-root "$RAW_ROOT/sweeps_fastq/all" \
+    --samples-output "$SWEEP_SAMPLES" \
+    --read-units-output "$SWEEP_UNITS"
+fi
 
 for value_name in ISOLATE_SAMPLES ISOLATE_UNITS SWEEP_SAMPLES SWEEP_UNITS ALLOWED_ROOTS INDEX_PREFIX REF_GROUPS CARRIAGE_REFERENCES; do
   [[ -n "${!value_name}" ]] || { echo "ERROR: Missing $value_name" >&2; exit 2; }
