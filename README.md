@@ -44,9 +44,24 @@ inputs/sweeps.read_units.local.tsv
 ```
 
 `sample_id` is the AMREvo `Unique_ID`. Sample rows may exist before reads
-arrive. Read-unit rows explicitly select runs and paths; AMREvoFlow never picks
-the newest matching file automatically. See `samples/` and `schemas/` for
-synthetic examples and machine-readable definitions.
+arrive. The AMREvo isolate registry is the deduplicated union of the completed
+LIMS sequencing interface and the pending v3 WGS handover. Pending v3 isolates
+expect both Illumina and ONT.
+
+For repeated isolate Illumina deliveries, the project-approved rule is to use
+the greatest parsed `esccol_YYMMDD` run containing the sample. Only its
+provider-trimmed `0_trimming` pair can be approved; an incomplete latest run is
+reported and never falls back silently to an older run. A unique flat ONT pass
+FASTQ is approved directly. Generate these project manifests with:
+
+```bash
+python3 bin/build_isolate_manifests.py --help
+```
+
+Sweeps use only the read-ID-deduplicated reconstruction under
+`sweeps_fastq/all/`; historical `cat`, `cat-new`, delivery and test folders are
+not production inputs. See `samples/` and `schemas/` for synthetic examples
+and machine-readable definitions.
 
 Use the discovery helper to generate candidates for review:
 

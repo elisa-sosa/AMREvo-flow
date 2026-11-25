@@ -10,9 +10,9 @@ From: mambaorg/micromamba:1.5.8
     micromamba install -y -n base -c conda-forge -c bioconda \
         python=3.11 git hmmer blast prodigal && \
         micromamba clean --all --yes
-    git clone --branch v1.0.1 --depth 1 https://github.com/SushiLab/kTYPr.git /opt/kTYPr
+    /opt/conda/bin/git clone --branch v1.0.1 --depth 1 https://github.com/SushiLab/kTYPr.git /opt/kTYPr
     cd /opt/kTYPr
-    git rev-parse HEAD > /opt/ktypr_source_commit.txt
+    /opt/conda/bin/git rev-parse HEAD > /opt/ktypr_source_commit.txt
     /opt/conda/bin/pip install --no-cache-dir .
 
 %environment
@@ -20,7 +20,7 @@ From: mambaorg/micromamba:1.5.8
 
 %test
     ktypr --help >/dev/null
-    test "$(python -c 'import importlib.metadata; print(importlib.metadata.version("kTYPr"))')" = "1.0.1"
+    test "$(python -c 'import importlib.metadata; print(importlib.metadata.version("kTYPr"))')" = "1.0"
 
 %runscript
     exec ktypr "$@"
