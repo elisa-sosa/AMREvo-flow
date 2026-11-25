@@ -539,7 +539,17 @@ def main() -> int:
 
         resolved_path = args.output_dir / "resolved_samples.tsv"
         with resolved_path.open("w", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(resolved_rows[0]), delimiter="\t")
+            # Nextflow 25.04 splitCsv does not decode Python's RFC-style
+            # doubled quotes reliably. JSON cells contain no tabs or newlines,
+            # so keep them as unquoted compact JSON at this TSV boundary.
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=list(resolved_rows[0]),
+                delimiter="\t",
+                lineterminator="\n",
+                quoting=csv.QUOTE_NONE,
+                quotechar=None,
+            )
             writer.writeheader()
             writer.writerows(resolved_rows)
         checksum_path = args.output_dir / "input_checksums.tsv"

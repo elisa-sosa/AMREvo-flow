@@ -105,6 +105,9 @@ class ManifestValidationTests(unittest.TestCase):
 
     def test_both_one_and_neither_routes(self):
         output, _ = self.run_validator()
+        physical_lines = (output / "resolved_samples.tsv").read_text().splitlines()
+        self.assertIn('["', physical_lines[1])
+        self.assertNotIn('"[""', physical_lines[1])
         rows = {row["sample_id"]: row for row in read_tsv(output / "resolved_samples.tsv")}
         self.assertEqual(rows["BOTH"]["status"], "READY_FOR_QC")
         self.assertEqual(rows["ILL"]["status"], "WAITING_FOR_ONT")
