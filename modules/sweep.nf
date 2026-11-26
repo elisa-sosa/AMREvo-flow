@@ -28,7 +28,7 @@ process SWEEP_ILLUMINA_QC {
     fastqc --threads "!{task.cpus}" --outdir "${sample_id}.sweep_fastqc" "!{r1}" "!{r2}"
     override_flag=""
     if [[ "${override}" == "true" ]]; then override_flag="--override"; fi
-    assess_illumina_qc.py \
+    assess_illumina_qc.sh \
       --sample-id "${sample_id}" --stage SWEEP_ILLUMINA_QC \
       --trim-metrics "!{trim_metrics}" --facility-status "${facility_status}" \
       ${override_flag} --output "${sample_id}.sweep_illumina_qc.tsv" \
@@ -40,7 +40,7 @@ process SWEEP_ILLUMINA_QC {
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.sweep.software_versions.txt"
     stage_status=$(tail -n 1 "${sample_id}.sweep_illumina_qc.tsv" | cut -f3)
-    completion_state.py create \
+    completion_state.sh create \
       --record "${sample_id}.SWEEP_ILLUMINA_QC_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class sweep --stage SWEEP_ILLUMINA_QC \
       --status "$stage_status" --input "!{r1}" --input "!{r2}" --input "!{trim_metrics}" \

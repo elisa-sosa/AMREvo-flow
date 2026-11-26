@@ -93,6 +93,46 @@ class TaskHelperTests(unittest.TestCase):
         result = self.run_helper("count_variable_sites.py", alignment)
         self.assertEqual(result.stdout.strip(), "1")
 
+    def test_shell_illumina_policy_runs_without_python(self) -> None:
+        metrics = self.root / "trim.txt"
+        metrics.write_text("Both Surviving: 80 (82.0%)\n")
+        output = self.root / "illumina.tsv"
+        marker = self.root / "ILL.ILLUMINA_READY"
+        self.run_helper(
+            "assess_illumina_qc.sh", "--sample-id", "ILL",
+            "--stage", "ILLUMINA_QC", "--trim-metrics", metrics,
+            "--facility-status", "accepted", "--output", output,
+            "--ready-marker", marker,
+        )
+        self.assertIn("\tPASS\taccepted\t82\tSTRONG_REVIEW\t", output.read_text())
+        self.assertTrue(marker.exists())
+
+    def test_shell_completion_record_matches_python_validator(self) -> None:
+        raw = self.root / "raw.fastq"
+        result_file = self.root / "result.tsv"
+        record = self.root / "COMPLETE.json"
+        raw.write_text("@r\nAC\n+\nII\n")
+        result_file.write_text("result\n")
+        self.run_helper(
+            "completion_state.sh", "create", "--record", record,
+            "--sample-id", "S", "--sample-class", "isolate",
+            "--stage", "TEST", "--status", "PASS",
+            "--input", raw, "--output", result_file,
+            "--parameter-hash", "parameters", "--software-hash", "software",
+            "--run-id", "run",
+        )
+        validation = subprocess.run(
+            [
+                str(BIN / "completion_state.py"), "validate",
+                "--record", str(record), "--sample-id", "S",
+                "--parameter-hash", "parameters",
+                "--software-hash", "software",
+            ],
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(validation.returncode, 0, validation.stdout + validation.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

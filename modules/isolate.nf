@@ -44,7 +44,7 @@ process ILLUMINA_QC {
 
     override_flag=""
     if [[ "${override}" == "true" ]]; then override_flag="--override"; fi
-    assess_illumina_qc.py \
+    assess_illumina_qc.sh \
       --sample-id "${sample_id}" --stage ILLUMINA_QC \
       --trim-metrics "!{trim_metrics}" --facility-status "${facility_status}" \
       ${override_flag} --output "${sample_id}.illumina_qc.tsv" \
@@ -57,7 +57,7 @@ process ILLUMINA_QC {
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.illumina.software_versions.txt"
     stage_status=$(tail -n 1 "${sample_id}.illumina_qc.tsv" | cut -f3)
-    completion_state.py create \
+    completion_state.sh create \
       --record "${sample_id}.ILLUMINA_QC_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage ILLUMINA_QC \
       --status "$stage_status" --input "!{r1}" --input "!{r2}" --input "!{trim_metrics}" \
@@ -113,7 +113,7 @@ process ONT_QC {
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.nanoplot.software_versions.txt"
     stage_status=$(tail -n 1 "${sample_id}.ont_qc.tsv" | cut -f3)
-    completion_state.py create \
+    completion_state.sh create \
       --record "${sample_id}.ONT_QC_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage ONT_QC \
       --status "$stage_status" --input "!{ont_reads}" \
@@ -158,7 +158,7 @@ process UNICYCLER_HYBRID {
       unicycler --version 2>&1 | head -n 1
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.unicycler.software_versions.txt"
-    completion_state.py create --record "${sample_id}.UNICYCLER_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.UNICYCLER_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage UNICYCLER --status PASS \
       --input "!{r1}" --input "!{r2}" --input "!{ont_reads}" \
       --output "${sample_id}.unicycler.fasta" --output "${sample_id}.unicycler.stage.tsv" \
@@ -200,7 +200,7 @@ process MEDAKA_POLISH {
       medaka --version 2>&1 | head -n 1 || true
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.medaka.software_versions.txt"
-    completion_state.py create --record "${sample_id}.MEDAKA_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.MEDAKA_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage MEDAKA --status PASS \
       --input "!{assembly}" --input "!{ont_reads}" \
       --output "${sample_id}.medaka.fasta" --output "${sample_id}.medaka.stage.tsv" \
@@ -250,7 +250,7 @@ process BWA_MEM2_ALIGN {
       bwa-mem2 version 2>&1 | head -n 1 || true
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.bwa_mem2.software_versions.txt"
-    completion_state.py create --record "${sample_id}.BWA_MEM2_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.BWA_MEM2_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage BWA_MEM2 --status PASS \
       --input "!{assembly}" --input "!{r1}" --input "!{r2}" \
       --output "${sample_id}.r1.sam" --output "${sample_id}.r2.sam" \
@@ -294,7 +294,7 @@ process POLYPOLISH {
       polypolish --version 2>&1 | head -n 1 || true
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.polypolish.software_versions.txt"
-    completion_state.py create --record "${sample_id}.POLYPOLISH_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.POLYPOLISH_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage POLYPOLISH --status PASS \
       --input "!{assembly}" --input "!{r1_sam}" --input "!{r2_sam}" \
       --output "${sample_id}.polypolish.fasta" --output "${sample_id}.polypolish.stage.tsv" \
@@ -337,7 +337,7 @@ process PYPOLCA {
       pypolca --version 2>&1 | head -n 1 || true
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.pypolca.software_versions.txt"
-    completion_state.py create --record "${sample_id}.PYPOLCA_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.PYPOLCA_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage PYPOLCA --status PASS \
       --input "!{assembly}" --input "!{r1}" --input "!{r2}" \
       --output "${sample_id}.polished.fasta" --output "${sample_id}.pypolca.stage.tsv" \
@@ -378,7 +378,7 @@ process QUAST_QC {
       quast.py --version 2>&1 | head -n 1
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.quast.software_versions.txt"
-    completion_state.py create --record "${sample_id}.QUAST_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.QUAST_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage QUAST --status PASS \
       --input "!{assembly}" --output "${sample_id}.quast.tsv" \
       --output "${sample_id}.quast.stage.tsv" --output "${sample_id}.quast.software_versions.txt" \
@@ -433,7 +433,7 @@ process CHECKM2_QC {
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.checkm2.software_versions.txt"
     stage_status=$(tail -n 1 "${sample_id}.checkm2.tsv" | cut -f3)
-    completion_state.py create --record "${sample_id}.ASSEMBLY_QC_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.ASSEMBLY_QC_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage ASSEMBLY_QC --status "$stage_status" \
       --input "!{assembly}" --output "${sample_id}.checkm2.tsv" \
       --output "${sample_id}.checkm2.software_versions.txt" \
@@ -484,7 +484,7 @@ process GTDBTK_CLASSIFY {
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.gtdbtk.software_versions.txt"
     stage_status=$(tail -n 1 "${sample_id}.gtdbtk.tsv" | cut -f3)
-    completion_state.py create --record "${sample_id}.GTDBTK_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.GTDBTK_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage GTDBTK --status "$stage_status" \
       --input "!{assembly}" --output "${sample_id}.gtdbtk.tsv" \
       --output "${sample_id}.gtdbtk.software_versions.txt" \
@@ -524,7 +524,7 @@ process MLST_ACHTMAN {
       mlst --version 2>&1 | head -n 1
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.mlst.software_versions.txt"
-    completion_state.py create --record "${sample_id}.MLST_ACHTMAN_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.MLST_ACHTMAN_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage MLST_ACHTMAN --status PASS \
       --input "!{assembly}" --output "${sample_id}.mlst.tsv" --output "${sample_id}.mlst.stage.tsv" \
       --output "${sample_id}.mlst.software_versions.txt" \
@@ -565,7 +565,7 @@ process AMRFINDERPLUS {
       amrfinder --database_version 2>&1 | sed 's/^/database\t/'
       printf 'retry_token\t%s\n' '!{meta.retry_token}'
     } > "${sample_id}.amrfinderplus.software_versions.txt"
-    completion_state.py create --record "${sample_id}.AMRFINDERPLUS_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.AMRFINDERPLUS_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage AMRFINDERPLUS --status PASS \
       --input "!{assembly}" --output "${sample_id}.amrfinderplus.tsv" \
       --output "${sample_id}.amrfinderplus.stage.tsv" --output "${sample_id}.amrfinderplus.software_versions.txt" \
@@ -615,7 +615,7 @@ process KTYPR {
         cat /opt/ktypr_source_commit.txt
       fi
     } > "${sample_id}.ktypr.software_versions.txt"
-    completion_state.py create --record "${sample_id}.KTYPR_COMPLETE.json" \
+    completion_state.sh create --record "${sample_id}.KTYPR_COMPLETE.json" \
       --sample-id "${sample_id}" --sample-class isolate --stage KTYPR --status PASS \
       --input "!{assembly}" --output "${sample_id}.ktypr.tsv" --output "${sample_id}.ktypr" \
       --output "${sample_id}.ktypr.stage.tsv" --output "${sample_id}.ktypr.software_versions.txt" \
