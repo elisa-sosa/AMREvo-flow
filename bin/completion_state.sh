@@ -57,7 +57,7 @@ canonical_path() {
 }
 
 file_size() {
-  stat -c '%s' "$1" 2>/dev/null || stat -f '%z' "$1"
+  wc -c < "$1" | awk '{print $1}'
 }
 
 json_escape() {
