@@ -19,6 +19,16 @@ class NextflowTsvContractTests(unittest.TestCase):
         config = (ROOT / "nextflow.config").read_text()
         self.assertEqual(config.count("overwrite = true"), 4)
 
+    def test_reporting_container_supports_nextflow_metrics(self) -> None:
+        definition = (ROOT / "containers" / "reporting-multiqc-1.33.def").read_text()
+        cluster = (ROOT / "conf" / "slurm.config").read_text()
+        submitter = (ROOT / "submit_pilot.sh").read_text()
+        image = "reporting_multiqc-1.33_matplotlib-3.11.2_procps.sif"
+        self.assertIn("procps", definition)
+        self.assertIn("command -v ps", definition)
+        self.assertEqual(cluster.count(image), 2)
+        self.assertIn(image, submitter)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -32,7 +32,7 @@ for file in \
   inputs/pilot.sweeps.samples.local.tsv \
   inputs/pilot.sweeps.read_units.local.tsv \
   containers/images/ktypr_1.0.1_b2e492530d53.sif \
-  containers/images/reporting_multiqc-1.33_matplotlib-3.11.2.sif; do
+  containers/images/reporting_multiqc-1.33_matplotlib-3.11.2_procps.sif; do
   [[ -s "$file" ]] || { echo "ERROR: Required pilot file missing or empty: $file" >&2; exit 2; }
 done
 

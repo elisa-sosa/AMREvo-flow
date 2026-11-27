@@ -3,10 +3,14 @@ From: python:3.14.2-slim-bookworm
 
 %labels
     org.opencontainers.image.title AMREvoFlow-reporting
-    org.opencontainers.image.version multiqc-1.33_matplotlib-3.11.2
+    org.opencontainers.image.version multiqc-1.33_matplotlib-3.11.2_procps
     org.opencontainers.image.source https://gitlab.uzh.ch/appliedmicrobiologyresearch/amr_research/amrevo-flow
 
 %post
+    apt-get update
+    apt-get install -y --no-install-recommends procps
+    apt-get clean
+    find /var/lib/apt/lists -mindepth 1 -delete
     python3 -m pip install --no-cache-dir \
         multiqc==1.33 \
         matplotlib==3.11.2
@@ -15,6 +19,8 @@ From: python:3.14.2-slim-bookworm
     export MPLBACKEND=Agg
 
 %test
+    command -v ps
+    ps -o pid= -p $$ >/dev/null
     multiqc --version | grep -F '1.33'
     python3 -c 'import matplotlib; assert matplotlib.__version__ == "3.11.2"'
     python3 -m pip check
